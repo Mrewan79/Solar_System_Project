@@ -1,0 +1,360 @@
+package com.mygdx.test_libgdx;
+
+import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.graphics.g3d.Environment;
+import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.ModelBatch;
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
+import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.input.GestureDetector.GestureListener;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.audio.*;
+import com.badlogic.gdx.utils.Array;
+
+
+public class test_libgdx extends ApplicationAdapter implements InputProcessor,GestureListener {
+	private PerspectiveCamera camera;
+	private ModelBatch modelBatch;
+	private ModelBuilder modelBuilder;
+
+	//Need to create an array to house the instances or they get written over
+    public Array<ModelInstance>instances;
+
+    //Models and instance Variables for storing the instances for the Solar Systems
+    //Planets
+
+	private Model sun; //sun
+	private Model mercury; //Mercury. Test planet no. 1.
+    private Model venus; //Venus
+    private Model earth;
+    private Model moon;
+    private Model mars;
+    private Model jupiter;
+    private Model saturn;
+    private Model uranus;
+    private Model neptune;
+    private Model pluto; //Quite far out
+
+    //Textures;
+    private Texture sunTexture;
+    private Texture mercuryTexture;
+    private Texture venusTexture;
+    private Texture earthTexture;
+    private Texture moonTexture;
+    private Texture marsTexture;
+    private Texture jupiterTexture;
+    private Texture saturnTexture;
+    private Texture uranusTexture;
+    private Texture neptuneTexture;
+    private Texture plutoTexture;
+
+    //Model instances for planets
+    private ModelInstance sunInstance;
+	private ModelInstance mercuryInstance;
+    private ModelInstance venusInstance;
+    private ModelInstance earthInstance;
+    private ModelInstance moonInstance;
+    private ModelInstance marsInstance;
+    private ModelInstance jupiterInstance;
+    private ModelInstance saturnInstance;
+    private ModelInstance uranusInstance;
+    private ModelInstance neptuneInstance;
+    private ModelInstance plutoInstance;
+
+	private Environment environment;
+	private Music backgroundMusic;
+
+
+	@Override //This is the object creator method. Think of it as a chef making a recipe together
+	public void create () {
+
+		//I set the background audio and also the thruster sound for the camera movements (camera/user/spaceship)
+		backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("Space Lounge Loop.wav"));
+		backgroundMusic.setLooping(true); //Loop has a sound gap :(
+		backgroundMusic.setVolume(0.3f); //But not too loud :'(
+		backgroundMusic.play(); //On switch
+
+		camera = new PerspectiveCamera(75,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
+		camera.position.set(0f,0f,100f); //Float coords
+		camera.lookAt(0f,0f,0f); //Pointing at origin
+		camera.near = 0.1f; //Inner limit of camera
+		camera.far = 300f; //Extent of camera
+
+        //Storage Array for instances
+        instances = new Array<ModelInstance>();
+
+		//modelBatch holds the game components, and modelBuilder constructs the 3d scene
+		modelBatch = new ModelBatch();
+		modelBuilder = new ModelBuilder();
+
+        //Textures for Sun, and planets
+        sunTexture = new Texture(Gdx.files.internal("texture_sun.jpg"));
+        mercuryTexture = new Texture(Gdx.files.internal("mercury.jpg"));
+        venusTexture = new Texture(Gdx.files.internal("venus.jpg"));
+        earthTexture = new Texture(Gdx.files.internal("earth_ill.jpg"));
+        moonTexture = new Texture(Gdx.files.internal("moon.png"));
+        marsTexture = new Texture(Gdx.files.internal("mars.jpg"));
+        jupiterTexture = new Texture(Gdx.files.internal("jupiter.jpg"));
+        saturnTexture = new Texture(Gdx.files.internal("saturn.jpg"));
+        uranusTexture = new Texture(Gdx.files.internal("uranus.jpg"));
+        neptuneTexture = new Texture(Gdx.files.internal("neptune.jpg"));
+        plutoTexture = new Texture(Gdx.files.internal("pluto.jpg"));
+		/*
+		Relative size (as a ratio), and distance from Sun(0,0,0)
+		Sun: 	1,392,000 Distance: 0
+		Mercury: Size = .38 of Earth, Distance: .39AU (Astronomical units, distance of sun to earth = 1)
+		etc
+		 */
+
+		//Actual objects
+		sun = modelBuilder.createSphere(50,50,50,20,20,new Material(TextureAttribute.createDiffuse(sunTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        mercury = modelBuilder.createSphere(1,1,1,20,20,new Material(TextureAttribute.createDiffuse(mercuryTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        venus = modelBuilder.createSphere(1.5f,1.5f,1.5f,20,20,new Material(TextureAttribute.createDiffuse(venusTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        earth = modelBuilder.createSphere(1.5f,1.5f,1.5f,20,20,new Material(TextureAttribute.createDiffuse(earthTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        moon = modelBuilder.createSphere(0.5f,0.5f,0.5f,20,20,new Material(TextureAttribute.createDiffuse(moonTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        mars = modelBuilder.createSphere(1,1,1,20,20,new Material(TextureAttribute.createDiffuse(marsTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        jupiter = modelBuilder.createSphere(6,6,6,20,20,new Material(TextureAttribute.createDiffuse(jupiterTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        saturn = modelBuilder.createSphere(5,5,5,20,20,new Material(TextureAttribute.createDiffuse(saturnTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        uranus = modelBuilder.createSphere(2.5f,2.5f,2.5f,20,20,new Material(TextureAttribute.createDiffuse(uranusTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        neptune = modelBuilder.createSphere(2.5f,2.5f,2.5f,20,20,new Material(TextureAttribute.createDiffuse(neptuneTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        pluto = modelBuilder.createSphere(0.5f,0.5f,0.5f,20,20,new Material(TextureAttribute.createDiffuse(plutoTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        //Scale is approximate. Sun is about 109 times bigger than the Earth. Jupiter/Saturn 10/11 times.
+
+		//Object and position --> Instance
+		sunInstance = new ModelInstance(sun,0,0,0);
+		mercuryInstance = new ModelInstance(mercury,39,0,0);
+        venusInstance = new ModelInstance(venus,72,0,0);
+        earthInstance = new ModelInstance(earth,100,0,0);
+        moonInstance = new ModelInstance(moon,103,0,0);
+        marsInstance = new ModelInstance(mars,200,0,0);
+        jupiterInstance = new ModelInstance(jupiter,546,0,0);
+        saturnInstance = new ModelInstance(saturn,950,0,0);
+        uranusInstance = new ModelInstance(uranus,1920,0,0);
+        neptuneInstance = new ModelInstance(neptune,2980,0,0);
+        plutoInstance = new ModelInstance(pluto,3950,0,0);
+
+        //Populate instances Array;
+        instances.add(sunInstance);
+        instances.add(mercuryInstance);
+        instances.add(venusInstance);
+        instances.add(earthInstance);
+        instances.add(moonInstance);
+        instances.add(marsInstance);
+        instances.add(jupiterInstance);
+        instances.add(saturnInstance);
+        instances.add(uranusInstance);
+        instances.add(neptuneInstance);
+        instances.add(plutoInstance);
+
+		//Important for background lighting, shadowing
+		environment = new Environment();
+		environment.set(new ColorAttribute(ColorAttribute.AmbientLight,0.4f,0.4f,0.4f,1f));
+
+		//Light from cameras angle. Without it, basic spheres look awful.
+        //Sunlight
+        environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f)); //Background light, otherwise looks terrible
+        environment.add(new DirectionalLight().set(Color.WHITE, 10.0f, 10.0f, 10.0f)); //Meant to be sunlight
+
+		Gdx.input.setInputProcessor(this); //This is important. The inputProcessor won't work without it. The methods will
+		//just sit there not working and driving you nuts.
+
+	}
+
+	@Override //method for displaying everything
+	public void render () {
+		Gdx.gl.glClearColor(0, 0, 0, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
+		camera.update();
+
+		modelBatch.begin(camera);
+		modelBatch.render(instances,environment);
+		modelBatch.end();
+	}
+
+    //Cleaning up method. Place Instance dispose methods in here (i.e. sunInstance.dispose();, etc)...
+    //I left out these dispose calls and it crashed my app from memory leaks. Need to look at architecture
+    //to see when this method is actually called on. You don't need to call ApplicationAdapter.dispose() manually.
+	@Override
+	public void dispose() {
+		modelBatch.dispose();
+
+        //dispose methods for instances.
+		sun.dispose();
+		mercury.dispose();
+		venus.dispose();
+        earth.dispose();
+        moon.dispose();
+        mars.dispose();
+        jupiter.dispose();
+        saturn.dispose();
+        uranus.dispose();
+        neptune.dispose();
+        pluto.dispose();
+
+        //Textures all need to be disposed also. Store in array, and use for loop? Gets time consuming.
+        sunTexture.dispose();
+        mercuryTexture.dispose();
+        venusTexture.dispose();
+        earthTexture.dispose();
+        moonTexture.dispose();
+        marsTexture.dispose();
+        jupiterTexture.dispose();
+        saturnTexture.dispose();
+        uranusTexture.dispose();
+        neptuneTexture.dispose();
+        plutoTexture.dispose();
+
+        //Other 'game' bits;
+		backgroundMusic.dispose();
+	}
+
+	/*Notes. Alternatively put InputProcessor in a seperate class then instantiate it;
+		i.e. public class MyInputProcessor implements InputProcessor{}
+		MyInputProcessor inputProcessor = new MyInputProcessor();
+		Gdx.input.setInputProcessor(inputProcessor);
+	 */
+	public boolean keyDown(int keycode)
+	{
+		if(keycode == Input.Keys.Q)
+			camera.rotateAround(new Vector3(0f,0f,0f),new Vector3(0f,1f,0f),1f);
+		if(keycode == Input.Keys.E)
+			camera.rotateAround(new Vector3(0f,0f,0f),new Vector3(0f,1f,0f),-1f);
+		if(keycode == Input.Keys.A)
+			camera.translate(-1f,0,0);
+		if(keycode == Input.Keys.D)
+			camera.translate(1f,0,0);
+		if(keycode == Input.Keys.W)
+			camera.translate(0,1f,0);
+		if(keycode == Input.Keys.S)
+			camera.translate(0,-1f,0);
+		if(keycode == Input.Keys.X)
+			camera.translate(0,0,-1f);
+		if(keycode == Input.Keys.Z)
+			camera.translate(0,0,1f);
+        if(keycode == Input.Keys.ESCAPE);
+            quit();
+		return true;
+	}
+
+    private void quit() {
+        //Close the app;
+        //Gdx.app.exit(); //This line was crashing the app, triggering when I hadn't pressed anything
+    }
+
+    public boolean keyUp(int keycode)
+	{
+		return false;
+	}
+
+	public boolean keyTyped(char character)
+	{
+		return false;
+	}
+
+	@Override //Touch down method will implement double-click hopefully
+	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+		return false;
+	}
+
+	@Override
+	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+		return false;
+	}
+
+	@Override //Rotate scene based on gesture
+	public boolean touchDragged(int screenX, int screenY, int pointer) {
+		return false;
+	}
+
+	@Override //Even though Mobiles don't use a Mouse...generally, I put this in for my own convenience for testing.
+	public boolean mouseMoved(int screenX, int screenY) {
+		//Relocating the camera;
+
+		return false;
+	}
+
+	@Override
+	public boolean scrolled(int amount) {
+		return false;
+	}
+
+	public boolean keyDragged()
+	{
+		return false;
+	}
+
+
+	//Methods for accepting touchinput
+	@Override
+	public boolean touchDown(float x, float y, int pointer, int button) {
+		return false;
+	}
+
+	@Override
+	public boolean tap(float x, float y, int count, int button) {
+		Vector3 touchPos = new Vector3(x,y,0);
+		camera.translate(touchPos);
+
+		return true;
+	}
+
+	@Override
+	public boolean longPress(float x, float y) {
+        Vector3 touchPos = new Vector3(x,y,1f);
+
+        //Move forward
+        camera.translate(touchPos);
+		return true;
+	}
+
+	@Override
+	public boolean fling(float velocityX, float velocityY, int button) {
+		return false;
+	}
+
+	@Override
+	public boolean pan(float x, float y, float deltaX, float deltaY) {
+        Vector3 touchPos = new Vector3(x,y,0);
+        camera.translate(touchPos);
+
+		return true;
+	}
+
+	@Override
+	public boolean panStop(float x, float y, int pointer, int button) {
+		return false;
+	}
+
+	@Override
+	public boolean zoom(float initialDistance, float distance) {
+
+        Vector3 touchPos = new Vector3(distance,distance,distance);
+        camera.translate(touchPos);
+
+		return true;
+	}
+
+	@Override
+	public boolean pinch(Vector2 initialPointer1, Vector2 initialPointer2, Vector2 pointer1, Vector2 pointer2) {
+		return false;
+	}
+
+	@Override
+	public void pinchStop() {
+
+	}
+}
