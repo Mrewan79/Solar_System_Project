@@ -1,0 +1,453 @@
+/*
+This is the coding for my Mobile Applications Project for Charles Sturt University 07/09/16.
+I used various references such as the LibGDX online documentation and gamefromscratch.com.
+The work was influenced by a similar project done in WebGL using Babylon.js. The coding most definitely is
+my own.
+Name: Ewan McDonnell
+Student No. 11205704
+- Remaining issues;
+Touch and Mouse controls never worked properly. Some user inputs were put into the render method, this seems dodgy.
+Saturns ring is a very flat cylinder. Models were made from 3d shapes such as spheres. A better approach would be to create
+or import the models from Blender. Everything has been written in one class. User input is also synonymous with the camera.
+This could create problems later, for instance interacting with a User Interface.
+Initially also, I intended for the user to be able to double-tap on the Sun or planets and open a wikipedia entry in a browser.
+ */
+package com.mygdx.test_libgdx;
+
+import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.graphics.g3d.Environment;
+import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.ModelBatch;
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
+import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.input.GestureDetector.GestureListener;
+import com.badlogic.gdx.graphics.Mesh;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.audio.*;
+import com.badlogic.gdx.utils.Array;
+
+public class test_libgdx extends ApplicationAdapter implements InputProcessor,GestureListener {
+	private PerspectiveCamera camera;
+	private ModelBatch modelBatch;
+	private ModelBuilder modelBuilder;
+
+	//Need to create an array to house the instances or they get written over
+    public Array<ModelInstance>instances;
+
+    //Models and instance Variables for storing the instances for the Solar Systems
+    //Planets
+
+	private Model sun; //sun
+	private Model mercury; //Mercury. Test planet no. 1.
+    private Model venus; //Venus
+    private Model earth;
+    private Model moon;
+    private Model mars;
+    private Model jupiter;
+    private Model saturn;
+    private Model ring_of_saturn;
+    private Model uranus;
+    private Model neptune;
+    private Model pluto; //Quite far out
+    private Model skySphere;
+
+    //Textures;
+    private Texture sunTexture;
+    private Texture mercuryTexture;
+    private Texture venusTexture;
+    private Texture earthTexture;
+    private Texture moonTexture;
+    private Texture marsTexture;
+    private Texture jupiterTexture;
+    private Texture saturnTexture;
+    private Texture uranusTexture;
+    private Texture neptuneTexture;
+    private Texture plutoTexture;
+
+    //Texture for skybox;
+    private Texture skySphereTexture;
+
+    //Model instances for planets
+    private ModelInstance sunInstance;
+	private ModelInstance mercuryInstance;
+    private ModelInstance venusInstance;
+    private ModelInstance earthInstance;
+    private ModelInstance moonInstance;
+    private ModelInstance marsInstance;
+    private ModelInstance jupiterInstance;
+    private ModelInstance saturnInstance;
+    private ModelInstance ring_of_saturnInstance;
+    private ModelInstance uranusInstance;
+    private ModelInstance neptuneInstance;
+    private ModelInstance plutoInstance;
+    private ModelInstance skySphereInstance;
+	private Environment environment;
+	private Music backgroundMusic;
+
+	@Override //This is the object creator method. Think of it as a chef making a recipe together
+	public void create () {
+
+		//I set the background audio and also the thruster sound for the camera movements (camera/user/spaceship)
+		backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("Space Lounge Loop.wav"));
+		backgroundMusic.setLooping(true); //Loop has a sound gap :(
+		backgroundMusic.setVolume(0.3f); //But not too loud :'(
+		backgroundMusic.play(); //On switch
+
+		camera = new PerspectiveCamera(75,Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
+		camera.position.set(0f,0f,100f); //Float coords
+		camera.lookAt(0f,0f,0f); //Pointing at origin
+		camera.near = 0.1f; //Inner limit of camera
+		camera.far = 8001f; //Extent of camera
+
+        //Storage Array for instances
+        instances = new Array<ModelInstance>();
+
+		//modelBatch holds the game components, and modelBuilder constructs the 3d scene
+		modelBatch = new ModelBatch();
+		modelBuilder = new ModelBuilder();
+
+        //Textures for Sun, and planets
+        sunTexture = new Texture(Gdx.files.internal("texture_sun.jpg"));
+        mercuryTexture = new Texture(Gdx.files.internal("mercury.jpg"));
+        venusTexture = new Texture(Gdx.files.internal("venus.jpg"));
+        earthTexture = new Texture(Gdx.files.internal("earth_ill.jpg"));
+        moonTexture = new Texture(Gdx.files.internal("moon.png"));
+        marsTexture = new Texture(Gdx.files.internal("mars.jpg"));
+        jupiterTexture = new Texture(Gdx.files.internal("jupiter.jpg"));
+        saturnTexture = new Texture(Gdx.files.internal("saturn.jpg"));
+        uranusTexture = new Texture(Gdx.files.internal("uranus.jpg"));
+        neptuneTexture = new Texture(Gdx.files.internal("neptune.jpg"));
+        plutoTexture = new Texture(Gdx.files.internal("pluto.jpg"));
+
+        //SkySphere - inverted sphere with milky way texture
+        skySphereTexture = new Texture(Gdx.files.internal("space.jpg"));
+		/*
+		Relative size (as a ratio), and distance from Sun(0,0,0)
+		Sun: 	1,392,000 Distance: 0
+		Mercury: Size = .38 of Earth, Distance: .39AU (Astronomical units, distance of sun to earth = 1)
+		etc
+		 */
+
+		//Actual objects
+		sun = modelBuilder.createSphere(50,50,50,20,20,new Material(TextureAttribute.createDiffuse(sunTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        mercury = modelBuilder.createSphere(1,1,1,20,20,new Material(TextureAttribute.createDiffuse(mercuryTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        venus = modelBuilder.createSphere(1.5f,1.5f,1.5f,20,20,new Material(TextureAttribute.createDiffuse(venusTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        earth = modelBuilder.createSphere(1.5f,1.5f,1.5f,20,20,new Material(TextureAttribute.createDiffuse(earthTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        moon = modelBuilder.createSphere(0.5f,0.5f,0.5f,20,20,new Material(TextureAttribute.createDiffuse(moonTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        mars = modelBuilder.createSphere(1,1,1,20,20,new Material(TextureAttribute.createDiffuse(marsTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        jupiter = modelBuilder.createSphere(6,6,6,20,20,new Material(TextureAttribute.createDiffuse(jupiterTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        saturn = modelBuilder.createSphere(5,5,5,20,20,new Material(TextureAttribute.createDiffuse(saturnTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        ring_of_saturn = modelBuilder.createCylinder(8f,0.05f,8f,20,new Material(ColorAttribute.createDiffuse(Color.WHITE),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal);
+        uranus = modelBuilder.createSphere(2.5f,2.5f,2.5f,20,20,new Material(TextureAttribute.createDiffuse(uranusTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        neptune = modelBuilder.createSphere(2.5f,2.5f,2.5f,20,20,new Material(TextureAttribute.createDiffuse(neptuneTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        pluto = modelBuilder.createSphere(0.5f,0.5f,0.5f,20,20,new Material(TextureAttribute.createDiffuse(plutoTexture),ColorAttribute.createSpecular(1,1,1,1),FloatAttribute.createShininess(1f)),VertexAttributes.Usage.Position|VertexAttributes.Usage.Normal|VertexAttributes.Usage.TextureCoordinates);
+        //Scale is approximate. Sun is about 109 times bigger than the Earth. Jupiter/Saturn 10/11 times.
+
+       //The following complex chunk of code is to invert the texture for the skySphere so that it points inwards rather than outwards.
+        //Based on method call in "Beginning Java Game Development with LibGDX"
+        Material sphereMaterial = new Material(TextureAttribute.createDiffuse(skySphereTexture),ColorAttribute.createSpecular(1,1,1,1));
+
+        int usageCode = VertexAttributes.Usage.Position + VertexAttributes.Usage.ColorPacked
+                + VertexAttributes.Usage.Normal + VertexAttributes.Usage.TextureCoordinates;
+        skySphere = modelBuilder.createSphere(8000,8000,8000, 32,32, sphereMaterial, usageCode);
+        for (Mesh m : skySphere.meshes) {
+            m.scale(1, 1, -1);
+        }
+
+		//Object and position --> Instance
+		sunInstance = new ModelInstance(sun,0,0,0);
+		mercuryInstance = new ModelInstance(mercury,39,0,0);
+        venusInstance = new ModelInstance(venus,72,0,0);
+        earthInstance = new ModelInstance(earth,100,0,0);
+        moonInstance = new ModelInstance(moon,103,0,0);
+        marsInstance = new ModelInstance(mars,200,0,0);
+        jupiterInstance = new ModelInstance(jupiter,546,0,0);
+        saturnInstance = new ModelInstance(saturn,950,0,0);
+        ring_of_saturnInstance = new ModelInstance(ring_of_saturn,950,0,0);
+        uranusInstance = new ModelInstance(uranus,1920,0,0);
+        neptuneInstance = new ModelInstance(neptune,2980,0,0);
+        plutoInstance = new ModelInstance(pluto,3950,0,0);
+
+        //SkyBox instance;
+        skySphereInstance = new ModelInstance(skySphere,0,0,0);
+
+        //Populate instances Array;
+        instances.add(sunInstance);
+        instances.add(mercuryInstance);
+        instances.add(venusInstance);
+        instances.add(earthInstance);
+        instances.add(moonInstance);
+        instances.add(marsInstance);
+        instances.add(jupiterInstance);
+        instances.add(saturnInstance);
+        instances.add(ring_of_saturnInstance); //Cylinder that is very short centered at centre of Saturn
+        instances.add(uranusInstance);
+        instances.add(neptuneInstance);
+        instances.add(plutoInstance);
+
+        //Add skybox to scene
+        instances.add(skySphereInstance);
+
+		//Important for background lighting, shadowing
+		environment = new Environment();
+		environment.set(new ColorAttribute(ColorAttribute.AmbientLight,0.4f,0.4f,0.4f,1f));
+
+		//Light from cameras angle. Without it, basic spheres look awful.
+        //Sunlight
+        environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f)); //Background light, otherwise looks terrible
+        environment.add(new DirectionalLight().set(Color.WHITE, 10.0f, 10.0f, 10.0f)); //Meant to be sunlight
+
+		Gdx.input.setInputProcessor(this); //This is important. The inputProcessor won't work without it. The methods will
+		//just sit there not working and driving you nuts.
+
+	}
+
+	@Override //method for displaying everything
+	public void render () {
+		Gdx.gl.glClearColor(0, 0, 0, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT|GL20.GL_DEPTH_BUFFER_BIT);
+		camera.update();
+
+
+      //Rotate planets around the sun. Translate back to origin, rotate, then translate out. Then self-rotate.
+        //It works but Mercury zooms about and I can't slow it down. Setting the rotation to a smaller degree for some
+        //reason made it rotate around a point outside the sun, not quite sure what was going on.
+        //mercuryInstance.transform.translate(-39,-0,-0).rotate(0,0.001f,0,13.0f).translate(39,0,0).rotate(0,1,0,1f);
+
+        //Rotate the instances around their centre;
+        sunInstance.transform.rotate(0,0.01f,0,0.011f);
+        mercuryInstance.transform.rotate(0, 1, 0, 0.1f); //Mercury rotates very slowly(2x per 3 sun rotations)
+        venusInstance.transform.rotate(0,1,0,1);
+        earthInstance.transform.rotate(0,1,0,1);
+        moonInstance.transform.translate(-3,0,0).rotate(0,0.001f,0,1.5f).translate(3,0,0);
+        marsInstance.transform.rotate(0,1,0,1);
+        jupiterInstance.transform.rotate(0,1,0,1);
+        saturnInstance.transform.rotate(0,1,0,0.1f);
+        ring_of_saturnInstance.transform.rotate(0,1,0,0.1f);
+        neptuneInstance.transform.rotate(0,1,0,1);
+        uranusInstance.transform.rotate(0,1,0,1);
+        plutoInstance.transform.rotate(0,1,0,1);
+
+        if(Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
+            this.quit(); //Causes a crash
+        }
+
+        if(Gdx.input.isTouched()) {
+            Vector3 touchPos = new Vector3();
+            touchPos.set(camera.position.x+5,camera.position.y+5, 0);
+            camera.position.set(touchPos);
+        }
+
+        modelBatch.begin(camera);
+		modelBatch.render(instances,environment);
+		modelBatch.end();
+	}
+
+    //Cleaning up method. Place Instance dispose methods in here (i.e. sunInstance.dispose();, etc)...
+    //I left out these dispose calls and it crashed my app from memory leaks. Need to look at architecture
+    //to see when this method is actually called on. You don't need to call ApplicationAdapter.dispose() manually.
+	@Override
+	public void dispose() {
+		modelBatch.dispose();
+
+        //dispose methods for models
+		sun.dispose();
+		mercury.dispose();
+		venus.dispose();
+        earth.dispose();
+        moon.dispose();
+        mars.dispose();
+        jupiter.dispose();
+        saturn.dispose();
+        ring_of_saturn.dispose();
+        uranus.dispose();
+        neptune.dispose();
+        pluto.dispose();
+        skySphere.dispose();
+
+        //Textures all need to be disposed also. Store in array, and use for loop? Gets time consuming.
+        sunTexture.dispose();
+        mercuryTexture.dispose();
+        venusTexture.dispose();
+        earthTexture.dispose();
+        moonTexture.dispose();
+        marsTexture.dispose();
+        jupiterTexture.dispose();
+        saturnTexture.dispose();
+        uranusTexture.dispose();
+        neptuneTexture.dispose();
+        plutoTexture.dispose();
+        skySphereTexture.dispose();
+
+        //Other 'game' bits;
+		backgroundMusic.dispose();
+	}
+
+	/*Notes. Alternatively put InputProcessor in a separate class then instantiate it;
+		i.e. public class MyInputProcessor implements InputProcessor{}
+		MyInputProcessor inputProcessor = new MyInputProcessor();
+		Gdx.input.setInputProcessor(inputProcessor);
+	 */
+	public boolean keyDown(int keycode)
+	{
+		if(keycode == Input.Keys.Q)
+			camera.rotateAround(new Vector3(0f,0f,0f),new Vector3(0f,1f,0f),1f);
+		if(keycode == Input.Keys.E)
+			camera.rotateAround(new Vector3(0f,0f,0f),new Vector3(0f,1f,0f),-1f);
+		if(keycode == Input.Keys.A)
+			camera.translate(-1f,0,0);
+		if(keycode == Input.Keys.D)
+			camera.translate(1f,0,0);
+		if(keycode == Input.Keys.W)
+			camera.translate(0,1f,0);
+		if(keycode == Input.Keys.S)
+			camera.translate(0,-1f,0);
+		if(keycode == Input.Keys.X)
+			camera.translate(0,0,-1f);
+		if(keycode == Input.Keys.Z)
+			camera.translate(0,0,1f);
+        if(keycode == Input.Keys.R) //Earth
+            camera.position.set(101,0,1);
+            camera.lookAt(new Vector3(0,0,0)); //Look back at Earth
+        if(keycode == Input.Keys.T)
+            camera.position.set(960,0,0);
+        camera.lookAt(new Vector3(0,0,0));
+        if(keycode == Input.Keys.Y) //Pluto
+            camera.position.set(3952,0,0);
+            camera.lookAt(new Vector3(0,0,0)); //Look back at Earth :'(
+		return true;
+	}
+
+    private void quit() {
+        //Close the app;
+        Gdx.app.exit(); //This line was crashing the app, triggering when I hadn't pressed anything
+    }
+
+    public boolean keyUp(int keycode)
+	{
+		return false;
+	}
+
+	public boolean keyTyped(char character)
+	{
+		return false;
+	}
+
+	@Override //Touch down method will implement double-click hopefully
+	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+
+        return false;
+	}
+
+	@Override
+	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+		return false;
+	}
+
+	@Override //Rotate scene based on gesture
+	public boolean touchDragged(int screenX, int screenY, int pointer) {
+		return false;
+	}
+
+	@Override //Even though Mobiles don't use a Mouse...generally, I put this in for my own convenience for testing.
+	public boolean mouseMoved(int screenX, int screenY) {
+		//Relocating the camera;
+        //camera.position.set(screenX,Gdx.graphics.getHeight()-screenY,camera.position.z);
+
+		return false;
+	}
+
+	@Override
+	public boolean scrolled(int amount) {
+        if(amount > 0)
+            camera.rotateAround(new Vector3(0f,0f,0f),new Vector3(0f,0f,1f),1f);
+        if(amount < 0)
+            camera.rotateAround(new Vector3(0f,0f,0f),new Vector3(0f,0f,1f),-1f);
+		return true;
+	}
+
+	public boolean keyDragged()
+	{
+		return false;
+	}
+
+
+	//Methods for accepting touchinput
+	@Override
+	public boolean touchDown(float x, float y, int pointer, int button) {
+
+        camera.translate(camera.position.x+x,camera.position.y+y,camera.position.z);
+        return true;
+	}
+
+	@Override
+	public boolean tap(float x, float y, int count, int button) {
+		Vector3 touchPos = new Vector3(x,y,0);
+		camera.translate(touchPos);
+		return true;
+	}
+
+	@Override
+	public boolean longPress(float x, float y) {
+        Vector3 touchPos = new Vector3(x,y,1f);
+
+        //Move forward
+        camera.translate(touchPos);
+		return true;
+	}
+
+	@Override
+	public boolean fling(float velocityX, float velocityY, int button) {
+		return false;
+	}
+
+	@Override
+	public boolean pan(float x, float y, float deltaX, float deltaY) {
+        Vector3 touchPos = new Vector3(x,y,0);
+        camera.translate(touchPos);
+
+		return true;
+	}
+
+	@Override
+	public boolean panStop(float x, float y, int pointer, int button) {
+		return false;
+	}
+
+	@Override
+	public boolean zoom(float initialDistance, float distance) {
+
+        Vector3 touchPos = new Vector3(distance,distance,distance);
+        camera.translate(touchPos);
+
+		return true;
+	}
+
+	@Override
+	public boolean pinch(Vector2 initialPointer1, Vector2 initialPointer2, Vector2 pointer1, Vector2 pointer2) {
+		return false;
+	}
+
+	@Override
+	public void pinchStop() {
+
+	}
+
+
+
+
+}
